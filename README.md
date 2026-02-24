@@ -1,31 +1,19 @@
 # RunForge
 
-Bootstrap repository for a Go-based Kubernetes operator project.
+Clean repository bootstrap with mandatory developer progress tracking.
 
-## Stack decision
+## Structure
 
-- Language: Go
-- Framework direction: Kubebuilder (recommended)
+- `developer/` progress, decisions, commands, verification, todos
+- `docs/` local development docs
+- `Makefile` standard development targets
 
-`kubebuilder` is not required for this initial scaffold, but this repo is set up so you can run Kubebuilder initialization next once installed.
-
-## Repository layout
-
-- `docs/` project documentation
-- `hack/` helper scripts
-- `pkg/version/` small starter package so lint/test run immediately
-
-## Quick start
+## Quick Start
 
 ```bash
+make help
+make fmt
 make lint
-go test ./...
+make test
 ```
 
-## Next step (Kubebuilder)
-
-After installing Kubebuilder:
-
-```bash
-kubebuilder init --domain example.com --repo github.com/vivekpradhan/runforge
-```
