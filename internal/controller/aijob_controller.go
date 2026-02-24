@@ -23,6 +23,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -32,6 +33,7 @@ import (
 
 	runforgev1alpha1 "github.com/vivekpradhan/runforge/api/v1alpha1"
 	"github.com/vivekpradhan/runforge/internal/jobfactory"
+	statusutil "github.com/vivekpradhan/runforge/internal/status"
 )
 
 // AIJobReconciler reconciles a AIJob object
@@ -86,13 +88,13 @@ func (r *AIJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 		log.Info("created Job for AIJob", "aijob", req.NamespacedName, "job", newJob.Name)
 
-		if statusErr := r.updateAIJobStatus(ctx, &aijob, newJob.Name, phaseForJob(newJob)); statusErr != nil {
+		if statusErr := r.updateAIJobStatus(ctx, &aijob, newJob); statusErr != nil {
 			return ctrl.Result{}, statusErr
 		}
 		return ctrl.Result{}, nil
 	}
 
-	if statusErr := r.updateAIJobStatus(ctx, &aijob, job.Name, phaseForJob(&job)); statusErr != nil {
+	if statusErr := r.updateAIJobStatus(ctx, &aijob, &job); statusErr != nil {
 		return ctrl.Result{}, statusErr
 	}
 
@@ -108,14 +110,12 @@ func (r *AIJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *AIJobReconciler) updateAIJobStatus(ctx context.Context, aijob *runforgev1alpha1.AIJob, jobName string, phase runforgev1alpha1.AIJobPhase) error {
+func (r *AIJobReconciler) updateAIJobStatus(ctx context.Context, aijob *runforgev1alpha1.AIJob, job *batchv1.Job) error {
 	original := aijob.DeepCopy()
-	aijob.Status.JobName = jobName
-	aijob.Status.Phase = phase
+	aijob.Status.JobName = job.Name
 	aijob.Status.ObservedGeneration = aijob.Generation
-	if aijob.Status.JobName == original.Status.JobName &&
-		aijob.Status.Phase == original.Status.Phase &&
-		aijob.Status.ObservedGeneration == original.Status.ObservedGeneration {
+	statusutil.ApplyFromJob(aijob, job, metav1.Now())
+	if statusUnchanged(original.Status, aijob.Status) {
 		return nil
 	}
 	return r.Status().Patch(ctx, aijob, client.MergeFrom(original))
@@ -128,17 +128,35 @@ func desiredJobName(aijob *runforgev1alpha1.AIJob) string {
 	return fmt.Sprintf("%s-job", aijob.Name)
 }
 
-func phaseForJob(job *batchv1.Job) runforgev1alpha1.AIJobPhase {
-	for _, cond := range job.Status.Conditions {
-		if cond.Type == batchv1.JobComplete && cond.Status == corev1.ConditionTrue {
-			return runforgev1alpha1.AIJobPhaseSucceeded
-		}
-		if cond.Type == batchv1.JobFailed && cond.Status == corev1.ConditionTrue {
-			return runforgev1alpha1.AIJobPhaseFailed
+func statusUnchanged(oldStatus, newStatus runforgev1alpha1.AIJobStatus) bool {
+	if oldStatus.JobName != newStatus.JobName ||
+		oldStatus.Phase != newStatus.Phase ||
+		oldStatus.ObservedGeneration != newStatus.ObservedGeneration ||
+		oldStatus.LastError != newStatus.LastError ||
+		!timeEqual(oldStatus.StartTime, newStatus.StartTime) ||
+		!timeEqual(oldStatus.CompletionTime, newStatus.CompletionTime) ||
+		len(oldStatus.Conditions) != len(newStatus.Conditions) {
+		return false
+	}
+	for i := range oldStatus.Conditions {
+		a := oldStatus.Conditions[i]
+		b := newStatus.Conditions[i]
+		if a.Type != b.Type ||
+			a.Reason != b.Reason ||
+			a.Message != b.Message ||
+			!a.LastTransitionTime.Equal(&b.LastTransitionTime) {
+			return false
 		}
 	}
-	if job.Status.Active > 0 {
-		return runforgev1alpha1.AIJobPhaseRunning
+	return true
+}
+
+func timeEqual(a, b *metav1.Time) bool {
+	if a == nil && b == nil {
+		return true
 	}
-	return runforgev1alpha1.AIJobPhasePending
+	if a == nil || b == nil {
+		return false
+	}
+	return a.Equal(b)
 }

@@ -25,3 +25,6 @@
 - Added watch on owned Jobs and RBAC for `batch/jobs` and core `events`.
 - Added examples for successful and failing jobs: `examples/aijob-success.yaml`, `examples/aijob-fail.yaml`.
 - Verified local run flow (`make run`) with apply/reapply/delete checks and GC behavior.
+- Implemented production-grade status lifecycle mapping in `internal/status/conditions.go` with condition transitions from Job state.
+- Controller now sets and reconciles: `observedGeneration`, `phase`, `conditions`, `startTime`, `completionTime`, and `lastError`.
+- Verified condition progression for success and failure resources (`Pending` -> `Running` -> `Succeeded` / `Failed`) and confirmed failure `lastError` propagation from Job failure condition.

@@ -5,7 +5,7 @@ metadata:
 spec:
   image: busybox:1.36
   command: ["sh", "-c"]
-  args: ["echo hello-from-aijob && sleep 30"]
+  args: ["echo hello-from-aijob && sleep 2"]
   env:
     - name: MODEL
       value: gpt-4.1-mini
@@ -16,7 +16,6 @@ spec:
     limits:
       cpu: "1"
       memory: "1Gi"
-      gpu: "1"
   restartPolicy: OnFailure
   backoffLimit: 3
   activeDeadlineSeconds: 3600

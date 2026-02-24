@@ -187,3 +187,71 @@ aijob.runforge.runforge.io "aijob-success" deleted from default namespace
 
 ### Output
 No resources found in default namespace.
+
+### Command
+`kubectl apply -f examples/aijob-success.yaml`
+
+### Output
+aijob.runforge.runforge.io/aijob-success created
+
+### Command
+`kubectl get aijob -w`
+
+### Output
+NAME            AGE
+aijob-success   7s
+aijob-fail      0s
+aijob-fail      3s
+
+### Command
+`kubectl apply -f examples/aijob-fail.yaml`
+
+### Output
+aijob.runforge.runforge.io/aijob-fail created
+
+### Command
+`kubectl get aijob aijob-success -o yaml`
+
+### Output (sample condition block)
+status:
+  completionTime: "2026-02-24T09:19:04Z"
+  conditions:
+  - type: Pending
+    reason: JobPending
+    message: waiting for job to start
+    lastTransitionTime: "2026-02-24T09:18:59Z"
+  - type: Running
+    reason: JobRunning
+    message: 'active pods: 1'
+    lastTransitionTime: "2026-02-24T09:18:59Z"
+  - type: Succeeded
+    reason: CompletionsReached
+    message: Reached expected number of succeeded pods
+    lastTransitionTime: "2026-02-24T09:19:04Z"
+  observedGeneration: 1
+  phase: Succeeded
+  startTime: "2026-02-24T09:18:59Z"
+
+### Command
+`kubectl get aijob aijob-fail -o yaml`
+
+### Output (sample condition block)
+status:
+  completionTime: "2026-02-24T09:19:16Z"
+  conditions:
+  - type: Pending
+    reason: JobPending
+    message: waiting for job to start
+    lastTransitionTime: "2026-02-24T09:19:13Z"
+  - type: Running
+    reason: JobRunning
+    message: 'active pods: 1'
+    lastTransitionTime: "2026-02-24T09:19:13Z"
+  - type: Failed
+    reason: BackoffLimitExceeded
+    message: Job has reached the specified backoff limit
+    lastTransitionTime: "2026-02-24T09:19:16Z"
+  lastError: 'BackoffLimitExceeded: Job has reached the specified backoff limit'
+  observedGeneration: 1
+  phase: Failed
+  startTime: "2026-02-24T09:19:13Z"
