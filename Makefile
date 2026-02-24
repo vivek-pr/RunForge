@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: help tools fmt lint test tidy ci
+.PHONY: help tools fmt lint test tidy ci kind-up kind-down kube-context
 
 help: ## Print available targets
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z0-9_-]+:.*## / {printf "%-10s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -25,3 +25,12 @@ tidy: ## Tidy Go module files
 ci: ## Run local CI-equivalent checks
 	@$(MAKE) test
 	@$(MAKE) lint
+
+kind-up: ## Create local kind cluster
+	@./hack/scripts/kind_up.sh
+
+kind-down: ## Delete local kind cluster
+	@./hack/scripts/kind_down.sh
+
+kube-context: ## Print current kubectl context
+	@kubectl config current-context

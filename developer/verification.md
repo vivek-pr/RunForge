@@ -37,3 +37,27 @@ lint       Run golangci-lint
 test       Run unit tests
 tidy       Tidy Go module files
 ci         Run local CI-equivalent checks
+
+### Command
+`make kind-up`
+
+### Output
+No kind clusters found.
+Creating cluster "runforge-local" ...
+...
+kind cluster 'runforge-local' is ready
+
+### Command
+`kubectl get nodes -o wide`
+
+### Output
+NAME                           STATUS   ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                         KERNEL-VERSION     CONTAINER-RUNTIME
+runforge-local-control-plane   Ready    control-plane   29s   v1.33.1   172.18.0.2    <none>        Debian GNU/Linux 12 (bookworm)   6.12.65-linuxkit   containerd://2.1.1
+
+### Command
+`make kind-down`
+
+### Output
+Deleting cluster "runforge-local" ...
+Deleted nodes: ["runforge-local-control-plane"]
+kind cluster 'runforge-local' deleted
