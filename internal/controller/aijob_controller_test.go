@@ -51,7 +51,9 @@ var _ = Describe("AIJob Controller", func() {
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
+					Spec: runforgev1alpha1.AIJobSpec{
+						Image: "busybox:1.36",
+					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}

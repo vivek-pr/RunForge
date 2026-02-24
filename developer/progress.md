@@ -19,3 +19,9 @@
 - Defined production-shape `AIJob` v1alpha1 API in `api/v1alpha1/aijob_types.go` with full `spec` and `status` fields (container settings, env/envFrom, resources with optional gpu, retry/deadline/ttl, scheduling, and execution status model).
 - Regenerated scaffolding artifacts from API edits (`api/v1alpha1/zz_generated.deepcopy.go` and `config/crd/bases/runforge.runforge.io_aijobs.yaml`).
 - Added API reference docs in `docs/api.md` and runnable sample manifest `examples/aijob-success.yaml`; updated `config/samples/runforge_v1alpha1_aijob.yaml` to include required `spec.image`.
+- Implemented controller MVP reconciliation flow:
+- Added pure job builder `internal/jobfactory/build_job.go`.
+- Reconciler now creates a `Job` if missing, sets owner reference, emits `JobCreated` event, and updates status (`jobName`, `phase`, `observedGeneration`).
+- Added watch on owned Jobs and RBAC for `batch/jobs` and core `events`.
+- Added examples for successful and failing jobs: `examples/aijob-success.yaml`, `examples/aijob-fail.yaml`.
+- Verified local run flow (`make run`) with apply/reapply/delete checks and GC behavior.

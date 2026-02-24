@@ -18,24 +18,34 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	runforgev1alpha1 "github.com/vivekpradhan/runforge/api/v1alpha1"
+	"github.com/vivekpradhan/runforge/internal/jobfactory"
 )
 
 // AIJobReconciler reconciles a AIJob object
 type AIJobReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=runforge.runforge.io,resources=aijobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=runforge.runforge.io,resources=aijobs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=runforge.runforge.io,resources=aijobs/finalizers,verbs=update
+// +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -47,9 +57,44 @@ type AIJobReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.23.1/pkg/reconcile
 func (r *AIJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = logf.FromContext(ctx)
+	log := logf.FromContext(ctx)
 
-	// TODO(user): your logic here
+	var aijob runforgev1alpha1.AIJob
+	if err := r.Get(ctx, req.NamespacedName, &aijob); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	jobName := desiredJobName(&aijob)
+	var job batchv1.Job
+	err := r.Get(ctx, client.ObjectKey{Namespace: aijob.Namespace, Name: jobName}, &job)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return ctrl.Result{}, err
+	}
+	if apierrors.IsNotFound(err) {
+		newJob, buildErr := jobfactory.BuildJob(&aijob, jobName)
+		if buildErr != nil {
+			return ctrl.Result{}, buildErr
+		}
+		if setErr := controllerutil.SetControllerReference(&aijob, newJob, r.Scheme); setErr != nil {
+			return ctrl.Result{}, setErr
+		}
+		if createErr := r.Create(ctx, newJob); createErr != nil {
+			return ctrl.Result{}, createErr
+		}
+		if r.Recorder != nil {
+			r.Recorder.Eventf(&aijob, corev1.EventTypeNormal, "JobCreated", "Created Job %s", newJob.Name)
+		}
+		log.Info("created Job for AIJob", "aijob", req.NamespacedName, "job", newJob.Name)
+
+		if statusErr := r.updateAIJobStatus(ctx, &aijob, newJob.Name, phaseForJob(newJob)); statusErr != nil {
+			return ctrl.Result{}, statusErr
+		}
+		return ctrl.Result{}, nil
+	}
+
+	if statusErr := r.updateAIJobStatus(ctx, &aijob, job.Name, phaseForJob(&job)); statusErr != nil {
+		return ctrl.Result{}, statusErr
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -58,6 +103,42 @@ func (r *AIJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 func (r *AIJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&runforgev1alpha1.AIJob{}).
+		Owns(&batchv1.Job{}).
 		Named("aijob").
 		Complete(r)
+}
+
+func (r *AIJobReconciler) updateAIJobStatus(ctx context.Context, aijob *runforgev1alpha1.AIJob, jobName string, phase runforgev1alpha1.AIJobPhase) error {
+	original := aijob.DeepCopy()
+	aijob.Status.JobName = jobName
+	aijob.Status.Phase = phase
+	aijob.Status.ObservedGeneration = aijob.Generation
+	if aijob.Status.JobName == original.Status.JobName &&
+		aijob.Status.Phase == original.Status.Phase &&
+		aijob.Status.ObservedGeneration == original.Status.ObservedGeneration {
+		return nil
+	}
+	return r.Status().Patch(ctx, aijob, client.MergeFrom(original))
+}
+
+func desiredJobName(aijob *runforgev1alpha1.AIJob) string {
+	if aijob.Status.JobName != "" {
+		return aijob.Status.JobName
+	}
+	return fmt.Sprintf("%s-job", aijob.Name)
+}
+
+func phaseForJob(job *batchv1.Job) runforgev1alpha1.AIJobPhase {
+	for _, cond := range job.Status.Conditions {
+		if cond.Type == batchv1.JobComplete && cond.Status == corev1.ConditionTrue {
+			return runforgev1alpha1.AIJobPhaseSucceeded
+		}
+		if cond.Type == batchv1.JobFailed && cond.Status == corev1.ConditionTrue {
+			return runforgev1alpha1.AIJobPhaseFailed
+		}
+	}
+	if job.Status.Active > 0 {
+		return runforgev1alpha1.AIJobPhaseRunning
+	}
+	return runforgev1alpha1.AIJobPhasePending
 }

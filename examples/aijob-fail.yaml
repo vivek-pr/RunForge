@@ -1,0 +1,10 @@
+apiVersion: runforge.runforge.io/v1alpha1
+kind: AIJob
+metadata:
+  name: aijob-fail
+spec:
+  image: busybox:1.36
+  command: ["sh", "-c"]
+  args: ["echo intentional-failure && exit 1"]
+  restartPolicy: Never
+  backoffLimit: 0

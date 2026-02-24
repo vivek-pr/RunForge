@@ -132,3 +132,58 @@ aijob.runforge.runforge.io/aijob-success created
 
 ### Output
 List contains `aijob-success` with persisted `spec` fields from `examples/aijob-success.yaml` (image, command/args, env/envFrom, resources, restartPolicy, backoffLimit, deadlines/ttl, scheduling, serviceAccountName).
+
+### Command
+`make run` (controller local process)
+
+### Output
+Manager started and reconciler workers started for `AIJob` and owned `Job` resources.
+
+### Command
+`kubectl apply -f examples/aijob-success.yaml`
+
+### Output
+aijob.runforge.runforge.io/aijob-success created
+
+### Command
+`kubectl get jobs,pods -o wide`
+
+### Output
+NAME                          STATUS    COMPLETIONS   DURATION   AGE   CONTAINERS   IMAGES         SELECTOR
+job.batch/aijob-success-job   Running   0/1           14s        14s   worker       busybox:1.36   batch.kubernetes.io/controller-uid=c56f243d-a882-4b1b-b335-9abedd7c7bab
+
+NAME                          READY   STATUS    RESTARTS   AGE   IP       NODE     NOMINATED NODE   READINESS GATES
+pod/aijob-success-job-vh5xj   0/1     Pending   0          14s   <none>   <none>   <none>           <none>
+
+### Command
+`kubectl apply -f examples/aijob-success.yaml` (reapply)
+
+### Output
+aijob.runforge.runforge.io/aijob-success unchanged
+
+### Command
+`kubectl get jobs -o name`
+
+### Output
+job.batch/aijob-success-job
+
+### Command
+`kubectl describe aijob aijob-success`
+
+### Output
+Events:
+  Type    Reason      Age   From              Message
+  ----    ------      ----  ----              -------
+  Normal  JobCreated  20s   aijob-controller  Created Job aijob-success-job
+
+### Command
+`kubectl delete -f examples/aijob-success.yaml`
+
+### Output
+aijob.runforge.runforge.io "aijob-success" deleted from default namespace
+
+### Command
+`kubectl get jobs,pods`
+
+### Output
+No resources found in default namespace.
