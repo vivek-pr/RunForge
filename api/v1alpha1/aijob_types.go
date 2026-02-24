@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,37 +26,182 @@ import (
 
 // AIJobSpec defines the desired state of AIJob
 type AIJobSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	// The following markers will use OpenAPI v3 schema to validate the value
-	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
+	// image is the container image used to run this job.
+	// +kubebuilder:validation:MinLength=1
+	Image string `json:"image"`
 
-	// foo is an example field of AIJob. Edit aijob_types.go to remove/update
+	// command is the container entrypoint command.
 	// +optional
-	Foo *string `json:"foo,omitempty"`
+	Command []string `json:"command,omitempty"`
+
+	// args are arguments passed to the container command.
+	// +optional
+	Args []string `json:"args,omitempty"`
+
+	// env is a list of name/value environment variables.
+	// +optional
+	Env []AIJobEnvVar `json:"env,omitempty"`
+
+	// envFrom references external sources for environment variables.
+	// +optional
+	EnvFrom []AIJobEnvFromSource `json:"envFrom,omitempty"`
+
+	// resources defines compute resource requests and limits.
+	// +optional
+	Resources *AIJobResourceRequirements `json:"resources,omitempty"`
+
+	// restartPolicy controls retry behavior for failed pods.
+	// +kubebuilder:default:=Never
+	// +kubebuilder:validation:Enum=Never;OnFailure
+	RestartPolicy string `json:"restartPolicy,omitempty"`
+
+	// backoffLimit is the number of retries before marking the job failed.
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	BackoffLimit *int32 `json:"backoffLimit,omitempty"`
+
+	// activeDeadlineSeconds is the max runtime in seconds before termination.
+	// +kubebuilder:validation:Minimum=1
+	// +optional
+	ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty"`
+
+	// ttlSecondsAfterFinished is the retention period for completed jobs.
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	TTLSecondsAfterFinished *int32 `json:"ttlSecondsAfterFinished,omitempty"`
+
+	// nodeSelector constrains scheduling onto specific nodes.
+	// +optional
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// tolerations allow scheduling onto tainted nodes.
+	// +optional
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+
+	// affinity defines affinity/anti-affinity scheduling preferences.
+	// +optional
+	Affinity *corev1.Affinity `json:"affinity,omitempty"`
+
+	// serviceAccountName is the pod service account identity.
+	// +optional
+	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 }
 
 // AIJobStatus defines the observed state of AIJob.
 type AIJobStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// observedGeneration reflects the generation last processed by the controller.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// For Kubernetes API conventions, see:
-	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
+	// phase is a coarse-grained summary of current execution state.
+	// +kubebuilder:validation:Enum=Pending;Running;Succeeded;Failed
+	// +optional
+	Phase AIJobPhase `json:"phase,omitempty"`
 
-	// conditions represent the current state of the AIJob resource.
-	// Each condition has a unique type and reflects the status of a specific aspect of the resource.
-	//
-	// Standard condition types include:
-	// - "Available": the resource is fully functional
-	// - "Progressing": the resource is being created or updated
-	// - "Degraded": the resource failed to reach or maintain its desired state
-	//
-	// The status of each condition is one of True, False, or Unknown.
+	// jobName references the backing Kubernetes Job resource name.
+	// +optional
+	JobName string `json:"jobName,omitempty"`
+
+	// conditions represent the current state transitions of AIJob.
 	// +listType=map
 	// +listMapKey=type
 	// +optional
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	Conditions []AIJobCondition `json:"conditions,omitempty"`
+
+	// startTime is when execution began.
+	// +optional
+	StartTime *metav1.Time `json:"startTime,omitempty"`
+
+	// completionTime is when execution reached a terminal phase.
+	// +optional
+	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
+
+	// lastError stores the latest terminal or transient error message.
+	// +optional
+	LastError string `json:"lastError,omitempty"`
+}
+
+// AIJobPhase defines the execution phase of an AIJob.
+type AIJobPhase string
+
+const (
+	AIJobPhasePending   AIJobPhase = "Pending"
+	AIJobPhaseRunning   AIJobPhase = "Running"
+	AIJobPhaseSucceeded AIJobPhase = "Succeeded"
+	AIJobPhaseFailed    AIJobPhase = "Failed"
+)
+
+// AIJobEnvVar is an explicit name/value environment variable.
+type AIJobEnvVar struct {
+	// name is the environment variable key.
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+
+	// value is the environment variable value.
+	// +optional
+	Value string `json:"value,omitempty"`
+}
+
+// AIJobLocalObjectReference references an object in the same namespace.
+type AIJobLocalObjectReference struct {
+	// name is the referenced object name.
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+}
+
+// AIJobEnvFromSource references a ConfigMap or Secret for env injection.
+type AIJobEnvFromSource struct {
+	// configMapRef references a ConfigMap source.
+	// +optional
+	ConfigMapRef *AIJobLocalObjectReference `json:"configMapRef,omitempty"`
+
+	// secretRef references a Secret source.
+	// +optional
+	SecretRef *AIJobLocalObjectReference `json:"secretRef,omitempty"`
+}
+
+// AIJobResourceList captures cpu/memory and optional gpu values.
+type AIJobResourceList struct {
+	// cpu is a CPU quantity (for example "500m" or "2").
+	// +optional
+	CPU string `json:"cpu,omitempty"`
+
+	// memory is a memory quantity (for example "512Mi" or "2Gi").
+	// +optional
+	Memory string `json:"memory,omitempty"`
+
+	// gpu is an optional accelerator quantity (for example "1").
+	// +optional
+	GPU string `json:"gpu,omitempty"`
+}
+
+// AIJobResourceRequirements describes requests and limits.
+type AIJobResourceRequirements struct {
+	// requests are minimum required resources.
+	// +optional
+	Requests *AIJobResourceList `json:"requests,omitempty"`
+
+	// limits are max allowed resources.
+	// +optional
+	Limits *AIJobResourceList `json:"limits,omitempty"`
+}
+
+// AIJobCondition records a status transition detail.
+type AIJobCondition struct {
+	// type identifies the condition category.
+	// +kubebuilder:validation:MinLength=1
+	Type string `json:"type"`
+
+	// reason is a machine-readable condition reason.
+	// +kubebuilder:validation:MinLength=1
+	Reason string `json:"reason"`
+
+	// message is a human-readable condition message.
+	// +optional
+	Message string `json:"message,omitempty"`
+
+	// lastTransitionTime is when this condition value last changed.
+	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
 }
 
 // +kubebuilder:object:root=true

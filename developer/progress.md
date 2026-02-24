@@ -16,3 +16,6 @@
 - Generated scaffold files: `PROJECT`, `cmd/main.go`, `api/v1alpha1/*`, `internal/controller/*`, `config/*`, `test/*`, `hack/boilerplate.go.txt`, `Dockerfile`, `.golangci.yml`, and workflow files.
 - Edited Kubebuilder scaffolding by adding `kind-up`, `kind-down`, and `kube-context` targets back into `Makefile` to preserve local-first cluster workflow.
 - Verified CRD lifecycle on Kind with `make manifests`, `make install`, CRD/API discovery checks, and `make uninstall`.
+- Defined production-shape `AIJob` v1alpha1 API in `api/v1alpha1/aijob_types.go` with full `spec` and `status` fields (container settings, env/envFrom, resources with optional gpu, retry/deadline/ttl, scheduling, and execution status model).
+- Regenerated scaffolding artifacts from API edits (`api/v1alpha1/zz_generated.deepcopy.go` and `config/crd/bases/runforge.runforge.io_aijobs.yaml`).
+- Added API reference docs in `docs/api.md` and runnable sample manifest `examples/aijob-success.yaml`; updated `config/samples/runforge_v1alpha1_aijob.yaml` to include required `spec.image`.

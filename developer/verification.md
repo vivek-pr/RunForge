@@ -102,3 +102,33 @@ aijobs                                           runforge.runforge.io/v1alpha1  
 ### Output
 "/Users/vivekpradhan/vscode/InterViewPreparation/RunForge/bin/controller-gen" rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 customresourcedefinition.apiextensions.k8s.io "aijobs.runforge.runforge.io" deleted
+
+### Command
+`make generate && make manifests && make install`
+
+### Output
+"/Users/vivekpradhan/vscode/InterViewPreparation/RunForge/bin/controller-gen" object:headerFile="hack/boilerplate.go.txt" paths="./..."
+"/Users/vivekpradhan/vscode/InterViewPreparation/RunForge/bin/controller-gen" rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+customresourcedefinition.apiextensions.k8s.io/aijobs.runforge.runforge.io configured
+
+### Command
+`kubectl explain aijob.spec`
+
+### Output
+GROUP:      runforge.runforge.io
+KIND:       AIJob
+VERSION:    v1alpha1
+
+FIELDS include: `image` (required), `command`, `args`, `env`, `envFrom`, `resources`, `restartPolicy`, `backoffLimit`, `activeDeadlineSeconds`, `ttlSecondsAfterFinished`, `nodeSelector`, `tolerations`, `affinity`, `serviceAccountName`.
+
+### Command
+`kubectl apply -f examples/aijob-success.yaml`
+
+### Output
+aijob.runforge.runforge.io/aijob-success created
+
+### Command
+`kubectl get aijob -o yaml`
+
+### Output
+List contains `aijob-success` with persisted `spec` fields from `examples/aijob-success.yaml` (image, command/args, env/envFrom, resources, restartPolicy, backoffLimit, deadlines/ttl, scheduling, serviceAccountName).
