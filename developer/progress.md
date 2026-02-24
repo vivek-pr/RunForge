@@ -6,3 +6,6 @@
 - Added baseline project files, docs, and Makefile targets.
 - Set up mandatory developer tracking files.
 - Verified `make help` and `make fmt && make lint && make test`.
+- Added CI workflow for push/PR with `go test ./...` and pinned `golangci-lint`.
+- Added Go module and starter package so lint/test are real checks.
+- Verified `make tidy && make ci`.

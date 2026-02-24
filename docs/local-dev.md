@@ -13,5 +13,6 @@ make tools
 make fmt
 make lint
 make test
+make tidy
+make ci
 ```
-
