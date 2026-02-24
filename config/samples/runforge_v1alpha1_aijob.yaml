@@ -1,0 +1,9 @@
+apiVersion: runforge.runforge.io/v1alpha1
+kind: AIJob
+metadata:
+  labels:
+    app.kubernetes.io/name: runforge
+    app.kubernetes.io/managed-by: kustomize
+  name: aijob-sample
+spec:
+  # TODO(user): Add fields here

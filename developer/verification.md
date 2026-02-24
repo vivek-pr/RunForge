@@ -61,3 +61,44 @@ runforge-local-control-plane   Ready    control-plane   29s   v1.33.1   172.18.0
 Deleting cluster "runforge-local" ...
 Deleted nodes: ["runforge-local-control-plane"]
 kind cluster 'runforge-local' deleted
+
+### Command
+`make manifests`
+
+### Output
+"/Users/vivekpradhan/vscode/InterViewPreparation/RunForge/bin/controller-gen" rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+
+### Command
+`make kind-up`
+
+### Output
+No kind clusters found.
+Creating cluster "runforge-local" ...
+...
+kind cluster 'runforge-local' is ready
+
+### Command
+`make install`
+
+### Output
+"/Users/vivekpradhan/vscode/InterViewPreparation/RunForge/bin/controller-gen" rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+customresourcedefinition.apiextensions.k8s.io/aijobs.runforge.runforge.io created
+
+### Command
+`kubectl get crd | grep aijobs`
+
+### Output
+aijobs.runforge.runforge.io   2026-02-24T07:59:55Z
+
+### Command
+`kubectl api-resources | grep -i aijob`
+
+### Output
+aijobs                                           runforge.runforge.io/v1alpha1     true         AIJob
+
+### Command
+`make uninstall`
+
+### Output
+"/Users/vivekpradhan/vscode/InterViewPreparation/RunForge/bin/controller-gen" rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+customresourcedefinition.apiextensions.k8s.io "aijobs.runforge.runforge.io" deleted
